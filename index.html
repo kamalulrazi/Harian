@@ -103,6 +103,7 @@ h1,h2,p,ol{margin:0}
 .ring .pg{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset 1s linear}
 .cd{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:6px}
 .cd b{font:500 26px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.cd b.long{font-size:21px}
 .cd small{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dial-mute)}
 .cd .ic{width:34px;height:34px;color:var(--accent)}
 .d-title{font-size:22px;line-height:1.18;font-weight:800;letter-spacing:-.015em;overflow-wrap:anywhere;text-wrap:balance}
@@ -303,7 +304,10 @@ function daysText(days){
 }
 function change(prev,c){
   if(!prev&&!c.cur)return null;
-  if(prev&&c.cur)return {title:'Tugas selesai, ganti ke tugas berikutnya',body:prev.name+' selesai. Sekarang waktunya '+c.cur.name+' ('+c.cur.start+' sampai '+c.cur.end+').'};
+  if(prev&&c.cur){
+    if(prev.day===c.d&&endMin(prev)*60>c.sec)return {title:'Pindah ke tugas lain',body:'Sekarang waktunya '+c.cur.name+' ('+c.cur.start+' sampai '+c.cur.end+'). '+prev.name+' masih berjalan sampai '+hhmm(endMin(prev))+'.'};
+    return {title:'Tugas selesai, ganti ke tugas berikutnya',body:prev.name+' selesai. Sekarang waktunya '+c.cur.name+' ('+c.cur.start+' sampai '+c.cur.end+').'};
+  }
   if(prev)return {title:'Tugas selesai',body:c.nxt?prev.name+' selesai. Berikutnya '+c.nxt.name+' pukul '+c.nxt.start+'.':prev.name+' selesai. Semua tugas hari ini sudah beres.'};
   return {title:'Waktunya mulai',body:c.cur.name+' berjalan sampai '+c.cur.end+'.'};
 }
@@ -321,6 +325,23 @@ function sample(now){
   if(hi+sh>1435)sh=1435-hi;
   return T.map((x,i)=>({id:'ex'+i,name:x[0],start:hhmm(base+x[1]+sh),end:hhmm(base+x[2]+sh),color:x[3],days:null,ex:true}));
 }
+function cleanTasks(arr){
+  const okT=s=>/^([01]\d|2[0-3]):[0-5]\d$/.test(String(s));
+  const seen=new Set(),out=[];
+  (Array.isArray(arr)?arr:[]).forEach((t,i)=>{
+    if(!t||typeof t!=='object'||typeof t.name!=='string'||!t.name.trim()||!okT(t.start)||!okT(t.end)||endMin(t)<=toMin(t.start))return;
+    let id=typeof t.id==='string'&&t.id?t.id:'r'+i;
+    while(seen.has(id))id+='_';
+    seen.add(id);
+    out.push({
+      id:id,name:t.name.trim().slice(0,60),start:t.start,end:t.end,
+      color:Number.isInteger(t.color)&&t.color>=0?t.color%6:out.length%6,
+      days:Array.isArray(t.days)&&t.days.length&&t.days.every(d=>Number.isInteger(d)&&d>=0&&d<=6)?[...new Set(t.days)].sort((a,b)=>a-b):null,
+      ex:t.ex===true
+    });
+  });
+  return out;
+}
 /*LOGIC-END*/
 
 const $=s=>document.querySelector(s);
@@ -335,7 +356,7 @@ const ls={
 };
 function load(){
   const v=ls.get();
-  if(v&&Array.isArray(v.tasks)){S=Object.assign(S,v)}
+  if(v&&Array.isArray(v.tasks)){S=Object.assign(S,v);S.tasks=cleanTasks(S.tasks);S.sound=S.sound!==false;S.notify=!!S.notify;S.t=+S.t||0}
   else{S.tasks=sample(new Date());S.t=0;ls.set(S)}
 }
 let dirty=false,writing=false;
@@ -356,9 +377,9 @@ async function flush(){
   }
   writing=false;paintStore();
 }
-function syncCur(){const c=compute(S.tasks,new Date());lastCur=c.cur?Object.assign({},c.cur):null}
+function syncCur(){const c=compute(S.tasks,new Date());lastCur=c.cur?Object.assign({day:c.d},c.cur):null}
 function adopt(r){
-  S=Object.assign({},S,{tasks:Array.isArray(r.tasks)?r.tasks:S.tasks,sound:r.sound!==false,notify:!!r.notify,t:r.t||0});
+  S=Object.assign({},S,{tasks:Array.isArray(r.tasks)?cleanTasks(r.tasks):S.tasks,sound:r.sound!==false,notify:!!r.notify,t:r.t||0});
   ls.set(S);ver++;syncCur();paintAll();paintPop();
 }
 async function initDb(){
@@ -386,6 +407,7 @@ async function initDb(){
   }catch(e){ref=null}
 }
 
+const BADTIME='Jam selesai harus setelah jam mulai. Tugas yang lewat tengah malam dibagi dua: sampai 00:00, lalu mulai 00:00.';
 const IC={
   check:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   plus:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
@@ -425,6 +447,7 @@ function tomorrowText(){
   }
   return 'Tambahkan tugas untuk hari lain kapan pun kamu mau.';
 }
+function setCd(txt){const e=$('#cd');e.textContent=txt;e.classList.toggle('long',txt.length>7)}
 function renderFocus(c){
   const el=$('#dial');
   let sig,html,mode;
@@ -454,11 +477,11 @@ function renderFocus(c){
   if(sig!==fSig){fSig=sig;fMode=mode;el.innerHTML=html}
   if(mode==='now'){
     const t=c.cur,s=toMin(t.start)*60,e=endMin(t)*60;
-    $('#cd').textContent=fmtClock(e-c.sec);
+    setCd(fmtClock(e-c.sec));
     $('#pg').style.strokeDashoffset=C*Math.min(1,Math.max(0,(c.sec-s)/(e-s)));
   }else if(mode==='gap'){
     const st=toMin(c.nxt.start)*60,from=Math.max(c.prev?endMin(c.prev)*60:0,st-3600);
-    $('#cd').textContent=fmtClock(st-c.sec);
+    setCd(fmtClock(st-c.sec));
     $('#pg').style.strokeDashoffset=C*Math.min(1,Math.max(0,1-(c.sec-from)/(st-from)));
   }
 }
@@ -467,7 +490,7 @@ function renderFocus(c){
 let lSig='';
 function renderList(c){
   const isToday=view===today,list=dayList(S.tasks,view),sec=c.sec;
-  const sig=view+'|'+ver+'|'+(isToday?list.map(t=>statusOf(t,sec)[0]).join(''):'-');
+  const sig=view+'|'+ver+'|'+(isToday?list.map(t=>({next:'x',now:'n',done:'d'}[statusOf(t,sec)])).join(''):'-');
   if(sig!==lSig){
     lSig=sig;
     let h='';
@@ -485,9 +508,11 @@ function renderList(c){
       h+='</ol>';
     }
     $('#list').innerHTML=h;
-  }else if(isToday&&c.cur){
-    const b=$('.row.now .bar i');
-    if(b)b.style.width=Math.round(100*(sec-toMin(c.cur.start)*60)/(durOf(c.cur)*60))+'%';
+  }else if(isToday){
+    document.querySelectorAll('#list .row.now .card').forEach(cd=>{
+      const t=S.tasks.find(x=>x.id===cd.dataset.id),b=cd.querySelector('.bar i');
+      if(t&&b)b.style.width=Math.min(100,Math.round(100*(sec-toMin(t.start)*60)/(durOf(t)*60)))+'%';
+    });
   }
 }
 function paint(c){renderFocus(c);renderList(c)}
@@ -547,10 +572,10 @@ function tick(){
   const c=compute(S.tasks,now);
   $('#clock').textContent=pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
   const cid=c.cur?c.cur.id:null;
-  if(!primed){lastCur=c.cur?Object.assign({},c.cur):null;primed=true}
+  if(!primed){lastCur=c.cur?Object.assign({day:c.d},c.cur):null;primed=true}
   else if(cid!==(lastCur?lastCur.id:null)){
     const m=change(lastCur,c);
-    lastCur=c.cur?Object.assign({},c.cur):null;
+    lastCur=c.cur?Object.assign({day:c.d},c.cur):null;
     if(m)fire(m);
   }
   paint(c);
@@ -610,10 +635,11 @@ function closeSheet(){
 }
 function readForm(){return {name:$('#fName').value.trim(),start:$('#fStart').value,end:$('#fEnd').value}}
 function refreshForm(){
+  $('#err').hidden=true;
   const f=readForm(),days=[...D.days];
   const both=!!(f.start&&f.end),ok=both&&endMin(f)>toMin(f.start);
   const info=$('#durInfo');
-  info.textContent=!both?'Isi jam mulai dan jam selesai.':(ok?'Durasi '+fmtDur(endMin(f)-toMin(f.start)):'Jam selesai harus setelah jam mulai.');
+  info.textContent=!both?'Isi jam mulai dan jam selesai.':(ok?'Durasi '+fmtDur(endMin(f)-toMin(f.start)):BADTIME);
   info.classList.toggle('bad',both&&!ok);
   const k=ok&&days.length?clash(S.tasks,{start:f.start,end:f.end,days:days},editing):null;
   const w=$('#warn');w.hidden=!k;
@@ -629,7 +655,7 @@ function saveTask(){
   const err=m=>{const e=$('#err');e.textContent=m;e.hidden=false};
   if(!f.name)return err('Isi nama tugas dulu.');
   if(!f.start||!f.end)return err('Isi jam mulai dan jam selesai.');
-  if(endMin(f)<=toMin(f.start))return err('Jam selesai harus setelah jam mulai.');
+  if(endMin(f)<=toMin(f.start))return err(BADTIME);
   if(!days.length)return err('Pilih minimal satu hari.');
   const task={id:editing||('t'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)),name:f.name,start:f.start,end:f.end,color:D.color,days:days.length===7?null:days};
   commit(()=>{const i=S.tasks.findIndex(x=>x.id===task.id);if(i>=0)S.tasks[i]=task;else S.tasks.push(task)});
@@ -649,6 +675,10 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){document.
 document.addEventListener('click',e=>{
   const p=$('#pop');
   if(!p.hidden&&!p.contains(e.target)&&!$('#bellBtn').contains(e.target))togglePop(false);
+});
+window.addEventListener('storage',e=>{
+  if(e.key!==LS||!e.newValue)return;
+  try{const r=JSON.parse(e.newValue);if(r&&Array.isArray(r.tasks)&&(r.t||0)>S.t)adopt(r)}catch(err){}
 });
 $('#bellBtn').addEventListener('click',()=>{paintPop();paintStore();togglePop($('#pop').hidden)});
 $('#swSound').addEventListener('click',()=>{S.sound=!S.sound;save();paintPop()});

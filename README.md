@@ -87,6 +87,8 @@ Ganti `USERNAME` dengan nama akun GitHub kamu.
 - Nada baru bisa berbunyi setelah halaman disentuh atau diklik sekali.
 - Notifikasi sistem butuh izin dari kamu dan alamat `https`. Notifikasinya dikirim lewat service worker, cara yang dipakai Chrome Android. Kalau izin ditolak, banner di dalam aplikasi tetap muncul.
 - Jadwal tersimpan per browser. Browser atau perangkat lain punya jadwal sendiri.
+- Tugas yang melewati tengah malam, misalnya 22:00 sampai 06:00, dibagi dua: satu tugas sampai 00:00 dan satu lagi mulai 00:00. Kalau jam selesai lebih awal dari jam mulai, aplikasi menolaknya dan menjelaskan caranya.
+- Kalau aplikasi dibuka di dua tab (lewat `https` atau `localhost`), perubahan di satu tab langsung ikut muncul di tab lain.
 
 ## Struktur
 
@@ -105,7 +107,7 @@ Warna dan font ada di blok `:root` di awal `<style>` pada `index.html`. Warna un
 
 Ikon sumbernya `icons/icon.svg`. Kalau diubah, ekspor ulang ke PNG dengan ukuran yang sama dengan file di folder `icons` (192, 512, maskable 512, 180, dan 32).
 
-Setelah mengubah file aplikasi, naikkan nomor `CACHE` di `sw.js` (misalnya `ritme-v2`) supaya perangkat yang sudah memasang aplikasi mengambil versi baru.
+Tidak perlu menaikkan versi apa pun saat mengubah file: service worker selalu mengambil file terbaru kalau perangkat online, dan memakai simpanan hanya saat offline.
 
 ## Ide pengembangan
 

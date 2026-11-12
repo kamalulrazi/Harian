@@ -1,6 +1,7 @@
 /* Ritme Harian: service worker.
    Menyimpan file aplikasi supaya bisa dibuka tanpa internet.
-   Kalau kamu mengubah file aplikasi, naikkan nomor CACHE (mis. ritme-v2). */
+   File aplikasi selalu diambil terbaru saat online, jadi tidak perlu menaikkan versi
+   saat kamu mengubah file. Simpanan hanya dipakai kalau sedang offline. */
 const CACHE = 'ritme-v1';
 const FONTS = 'ritme-fonts-v1';
 const SHELL = [
@@ -33,32 +34,35 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Halaman: ambil yang terbaru kalau online, pakai simpanan kalau offline.
-  if (req.mode === 'navigate') {
+  const sameOrigin = url.origin === location.origin;
+
+  // File aplikasi (halaman, skrip, ikon): ambil yang terbaru kalau online,
+  // pakai simpanan kalau offline. no-cache memastikan tidak memakai salinan lama dari browser.
+  if (sameOrigin) {
     e.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-cache' })
         .then(res => {
-          if (res.ok) {
+          if (res.status === 200) {
             const copy = res.clone();
-            caches.open(CACHE).then(c => c.put('index.html', copy));
+            caches.open(CACHE).then(c => c.put(req.mode === 'navigate' ? 'index.html' : req, copy));
           }
           return res;
         })
-        .catch(() => caches.match('index.html').then(r => r || caches.match('./')))
+        .catch(() => caches.match(req.mode === 'navigate' ? 'index.html' : req)
+          .then(r => r || (req.mode === 'navigate' ? caches.match('./') : undefined)))
     );
     return;
   }
 
-  // File lain dan font: pakai simpanan dulu, perbarui di belakang layar.
-  const sameOrigin = url.origin === location.origin;
+  // Font: pakai simpanan dulu, perbarui di belakang layar.
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
-  if (!sameOrigin && !isFont) return;
+  if (!isFont) return;
   e.respondWith(
-    caches.open(sameOrigin ? CACHE : FONTS).then(cache =>
+    caches.open(FONTS).then(cache =>
       cache.match(req).then(hit => {
         const net = fetch(req)
           .then(res => {
-            if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
+            if (res && (res.status === 200 || res.type === 'opaque')) cache.put(req, res.clone());
             return res;
           })
           .catch(() => hit);

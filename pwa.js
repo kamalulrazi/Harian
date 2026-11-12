@@ -18,7 +18,7 @@
       try { new Notification(title, { body: body, tag: 'ritme', icon: icon }); } catch (e) {}
     };
     if (!reg) { old(); return; }
-    reg.showNotification(title, { body: body, tag: 'ritme', icon: icon, badge: icon, vibrate: [180, 80, 180] }).catch(old);
+    reg.showNotification(title, { body: body, tag: 'ritme', icon: icon, badge: icon, vibrate: [180, 80, 180], renotify: true }).catch(old);
   };
 
   // Tombol Pasang di panel lonceng.
