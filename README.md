@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icons/icon-192.png" alt="Ikon Ritme Harian" width="96">
+  <img src="icon-192.png" alt="Ikon Ritme Harian" width="96">
 </p>
 
 # Ritme Harian
@@ -63,7 +63,7 @@ lalu buka http://localhost:8000.
 ## Pasang di GitHub Pages
 
 1. Buat repository baru di GitHub, misalnya `ritme-harian`.
-2. Upload semua isi folder ini ke repository tersebut, termasuk folder `icons` dan `screenshots`.
+2. Upload semua file ke repository tersebut. Semua file aplikasi (termasuk ikon) berada sejajar dengan `index.html`, jadi tidak ada folder yang wajib. Folder `screenshots` hanya untuk gambar di README dan boleh dilewati.
 3. Buka **Settings**, lalu **Pages**. Pada **Build and deployment**, pilih **Deploy from a branch**, branch `main`, folder `/ (root)`, lalu **Save**.
 4. Tunggu satu sampai dua menit. Alamatnya: `https://USERNAME.github.io/ritme-harian/`
 
@@ -97,7 +97,7 @@ index.html             seluruh aplikasi (HTML, CSS, JavaScript)
 manifest.webmanifest   data untuk pemasangan: nama, ikon, warna
 sw.js                  service worker: menyimpan file supaya bisa offline
 pwa.js                 daftar service worker, tombol Pasang, notifikasi sistem
-icons/                 ikon aplikasi (SVG dan PNG)
+icon.svg, icon-*.png   ikon aplikasi (juga apple-touch-icon.png, favicon-32.png)
 screenshots/           gambar untuk README
 ```
 
@@ -105,7 +105,7 @@ screenshots/           gambar untuk README
 
 Warna dan font ada di blok `:root` di awal `<style>` pada `index.html`. Warna untuk mode gelap ada di dua blok setelahnya. Jadwal contoh dibuat oleh fungsi `sample()` di bagian script.
 
-Ikon sumbernya `icons/icon.svg`. Kalau diubah, ekspor ulang ke PNG dengan ukuran yang sama dengan file di folder `icons` (192, 512, maskable 512, 180, dan 32).
+Ikon sumbernya `icon.svg`. Kalau diubah, ekspor ulang ke PNG dengan ukuran yang sama dengan file ikon yang ada (192, 512, maskable 512, 180, dan 32).
 
 Tidak perlu menaikkan versi apa pun saat mengubah file: service worker selalu mengambil file terbaru kalau perangkat online, dan memakai simpanan hanya saat offline.
 

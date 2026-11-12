@@ -13,7 +13,7 @@
 
   // Notifikasi sistem lewat service worker. Ini cara yang didukung Chrome Android.
   window.ritmeSystemNotify = function (title, body) {
-    var icon = 'icons/icon-192.png';
+    var icon = 'icon-192.png';
     var old = function () {
       try { new Notification(title, { body: body, tag: 'ritme', icon: icon }); } catch (e) {}
     };

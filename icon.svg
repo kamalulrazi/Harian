@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Ritme Harian">
+  <defs>
+    <radialGradient id="glow" cx="0.9" cy="0.05" r="0.95">
+      <stop offset="0" stop-color="#E9B13B" stop-opacity=".15"/>
+      <stop offset="1" stop-color="#E9B13B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0F1D36"/>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+  <g fill="none" stroke-width="40" stroke-linecap="round" transform="rotate(-90 256 256)">
+    <circle cx="256" cy="256" r="136" stroke="#EEF3FB" stroke-opacity=".14"/>
+    <circle cx="256" cy="256" r="136" stroke="#E9B13B" stroke-dasharray="620 855"/>
+  </g>
+  <path d="M204 262l36 36 70-80" fill="none" stroke="#EEF3FB" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
